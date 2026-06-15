@@ -1,0 +1,37 @@
+{{define "datasets.html"}}
+<div class="section">
+  <div class="section-title">Top Datasets by Usage</div>
+  <div class="card" style="padding:0">
+  {{if .TopDatasets}}
+  <table>
+    <thead>
+      <tr>
+        <th>Dataset</th>
+        <th>Type</th>
+        <th>Used</th>
+        <th>Available</th>
+        <th>Referenced</th>
+        <th>Snap Usage</th>
+        <th>Compress</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .TopDatasets}}
+    <tr>
+      <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{.Name}}">{{.Name}}</td>
+      <td><span class="badge status-unknown">{{.Type}}</span></td>
+      <td>{{humanBytes .UsedBytes}}</td>
+      <td>{{humanBytes .AvailBytes}}</td>
+      <td>{{humanBytes .ReferBytes}}</td>
+      <td>{{humanBytes .UsedBySnaps}}</td>
+      <td>{{printf "%.2fx" .CompressRatio}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <div style="padding:16px;color:var(--muted)">No dataset data available.</div>
+  {{end}}
+  </div>
+</div>
+{{end}}

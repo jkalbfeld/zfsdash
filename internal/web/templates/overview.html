@@ -1,0 +1,92 @@
+{{define "overview.html"}}
+{{range .Pools}}
+<div class="card">
+  <div class="pool-header">
+    <span class="pool-name">{{.Name}}</span>
+    <span class="badge {{.Health.CSSClass}}">{{.Health}}</span>
+    {{if .Scrub.InProgress}}<span class="badge status-warn">scrub running {{printf "%.1f" .Scrub.Percent}}%</span>{{end}}
+  </div>
+
+  <div class="meta-row">
+    <div class="meta-item">
+      <span class="meta-label">Total</span>
+      <span class="meta-value">{{humanBytes .SizeBytes}}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Used</span>
+      <span class="meta-value">{{humanBytes .UsedBytes}}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Free</span>
+      <span class="meta-value">{{humanBytes .FreeBytes}}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Dedup</span>
+      <span class="meta-value">{{printf "%.2fx" .Dedup}}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Frag</span>
+      <span class="meta-value">{{printf "%.0f%%" .FragPercent}}</span>
+    </div>
+  </div>
+
+  {{$cls := pctClass .UsedPercent}}
+  <div class="{{$cls}}">
+    <div class="progress-bar"><div class="progress-fill" style="width:{{printf "%.1f" .UsedPercent}}%"></div></div>
+    <div class="pct-label">{{printf "%.1f" .UsedPercent}}% used</div>
+  </div>
+
+  {{if .VDevs}}
+  <div class="vdev-tree" style="margin-top:12px">
+    {{range .VDevs}}
+    <div class="vdev-row">
+      <span class="badge {{.Health.CSSClass}}" style="font-size:10px">{{.Type}}</span>
+      <span class="vdev-name">{{.Name}}</span>
+      <span class="badge {{.Health.CSSClass}}" style="font-size:10px">{{.Health}}</span>
+      {{if or .ReadErr .WriteErr .CkSumErr}}
+      <span class="vdev-errs status-err">R:{{.ReadErr}} W:{{.WriteErr}} C:{{.CkSumErr}}</span>
+      {{end}}
+    </div>
+    {{range .Children}}
+    <div class="vdev-row" style="padding-left:20px">
+      <span class="meta-label">└</span>
+      <span class="vdev-name">{{.Name}}</span>
+      <span class="badge {{.Health.CSSClass}}" style="font-size:10px">{{.Health}}</span>
+      {{if or .ReadErr .WriteErr .CkSumErr}}
+      <span class="vdev-errs status-err">R:{{.ReadErr}} W:{{.WriteErr}} C:{{.CkSumErr}}</span>
+      {{end}}
+    </div>
+    {{end}}
+    {{end}}
+  </div>
+  {{end}}
+
+  <div class="scrub-row">
+    <div class="meta-item">
+      <span class="meta-label">Last Scrub</span>
+      <span class="meta-value">{{timeAgo .Scrub.LastRun}}</span>
+    </div>
+    {{if .Scrub.Repaired}}
+    <div class="meta-item">
+      <span class="meta-label">Repaired</span>
+      <span class="meta-value">{{.Scrub.Repaired}}</span>
+    </div>
+    {{end}}
+    {{if .Scrub.Errors}}
+    <div class="meta-item">
+      <span class="meta-label">Scrub Errors</span>
+      <span class="meta-value status-err">{{.Scrub.Errors}}</span>
+    </div>
+    {{end}}
+    {{if .Scrub.Duration}}
+    <div class="meta-item">
+      <span class="meta-label">Duration</span>
+      <span class="meta-value">{{.Scrub.Duration}}</span>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{else}}
+<div class="card"><p style="color:var(--muted)">No pools found. Verify your config.yaml and ZFS host connectivity.</p></div>
+{{end}}
+{{end}}
