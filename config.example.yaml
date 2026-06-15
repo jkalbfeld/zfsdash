@@ -1,0 +1,49 @@
+# zfsdash configuration
+# Copy to config.yaml and edit
+
+# Data source: "truenas" or "ssh"
+mode: ssh
+
+# SSH mode — connect directly to a ZFS host
+ssh:
+  host: "192.168.1.10"
+  port: 22
+  user: "root"
+  # Use either password or key_path
+  password: ""
+  key_path: "/etc/zfsdash/id_ed25519"
+
+# TrueNAS mode — use TrueNAS Scale/Core REST API
+truenas:
+  url: "https://truenas.local"
+  api_key: "1-xxxxxxxxxxxx"
+  # Set false to skip TLS verify (self-signed certs)
+  tls_verify: true
+
+# Poll interval in seconds (default: 60)
+poll_interval: 60
+
+# Capacity alert threshold (percent, default: 85)
+capacity_alert_threshold: 85
+
+# Alert cooldown — minimum minutes between repeated alerts for the same issue
+alert_cooldown_minutes: 60
+
+# Email alerts (optional)
+email:
+  enabled: false
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "alerts@example.com"
+  smtp_password: "supersecret"
+  from: "zfsdash@example.com"
+  to:
+    - "admin@example.com"
+
+# Webhook alerts (optional, list of URLs)
+webhooks:
+  - url: "https://hooks.slack.com/services/xxx/yyy/zzz"
+  - url: "https://ntfy.sh/my-topic"
+
+# Web server listen address
+listen: ":8080"
