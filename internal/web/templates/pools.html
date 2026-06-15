@@ -1,0 +1,15 @@
+{{template "base.html" .}}
+{{define "title"}} — Pools{{end}}
+{{define "content"}}
+<div class="page-header">
+  <h1>Pools</h1>
+  <span class="updated">{{if not .CollectedAt.IsZero}}{{timeAgo .CollectedAt}}{{end}}</span>
+</div>
+{{if eq .PoolCount 0}}
+<div class="empty-state"><p>No pools found.</p></div>
+{{else}}
+<div id="pool-cards" hx-get="/htmx/pools" hx-trigger="every 60s" hx-swap="innerHTML">
+  {{template "partial_pools.html" .}}
+</div>
+{{end}}
+{{end}}

@@ -1,44 +1,11 @@
-{{define "snapshots.html"}}
-<div class="section">
-  <div class="stat-grid" style="margin-bottom:16px">
-    <div class="stat-card">
-      <div class="stat-value">{{.TotalSnaps}}</div>
-      <div class="stat-label">Total Snapshots</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">{{humanBytes .TotalSnapSize}}</div>
-      <div class="stat-label">Total Snapshot Size</div>
-    </div>
-  </div>
-
-  <div class="section-title">Snapshot Inventory</div>
-  <div class="card" style="padding:0">
-  {{if .Snapshots}}
-  <table>
-    <thead>
-      <tr>
-        <th>Snapshot</th>
-        <th>Pool</th>
-        <th>Created</th>
-        <th>Used</th>
-        <th>Referenced</th>
-      </tr>
-    </thead>
-    <tbody>
-    {{range .Snapshots}}
-    <tr>
-      <td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{.Name}}">{{.Name}}</td>
-      <td>{{.Pool}}</td>
-      <td>{{timeAgo .Created}}</td>
-      <td>{{humanBytes .UsedBytes}}</td>
-      <td>{{humanBytes .ReferBytes}}</td>
-    </tr>
-    {{end}}
-    </tbody>
-  </table>
-  {{else}}
-  <div style="padding:16px;color:var(--muted)">No snapshots found.</div>
-  {{end}}
-  </div>
+{{template "base.html" .}}
+{{define "title"}} — Snapshots{{end}}
+{{define "content"}}
+<div class="page-header">
+  <h1>Snapshots</h1>
+  <span class="updated">{{.SnapshotCount}} total — {{if not .CollectedAt.IsZero}}{{timeAgo .CollectedAt}}{{end}}</span>
+</div>
+<div id="snaps-table" hx-get="/htmx/snapshots" hx-trigger="every 60s" hx-swap="innerHTML">
+  {{template "partial_snapshots.html" .}}
 </div>
 {{end}}
