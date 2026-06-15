@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jkalbfeld/zfsdash/internal/config"
@@ -61,17 +62,11 @@ type tnPool struct {
 	DedupRatio  float64 `json:"dedupratio"`
 	FragPercent float64 `json:"fragmentation"`
 	Scan        struct {
-		Function  string  `json:"function"`
-		State     string  `json:"state"`
-		StartTime *struct {
-			Datetime string `json:"$date"`
-		} `json:"start_time"`
-		EndTime *struct {
-			Datetime string `json:"$date"`
-		} `json:"end_time"`
-		Errors    uint64  `json:"errors"`
-		BytesIssued uint64 `json:"bytes_issued"`
-		BytesToProcess uint64 `json:"bytes_to_process"`
+		Function       string  `json:"function"`
+		State          string  `json:"state"`
+		Errors         uint64  `json:"errors"`
+		BytesIssued    uint64  `json:"bytes_issued"`
+		BytesToProcess uint64  `json:"bytes_to_process"`
 	} `json:"scan"`
 }
 
@@ -91,7 +86,6 @@ type tnSnapshot struct {
 	Pool       string `json:"pool"`
 	Used       struct{ Parsed uint64 `json:"parsed"` } `json:"used"`
 	Referenced struct{ Parsed uint64 `json:"parsed"` } `json:"referenced"`
-	CreateTxg  string `json:"createtxg"`
 }
 
 func (c *TrueNASCollector) fetchPools() ([]Pool, error) {
@@ -190,11 +184,4 @@ func (c *TrueNASCollector) get(path string, out interface{}) error {
 		return fmt.Errorf("truenas api %s: %s — %s", path, resp.Status, string(body))
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
-}
-
-// strings import shim — truenas.go needs it
-func init() {} // suppress unused import
-
-var strings_toLower = func(s string) string {
-	return s
 }
