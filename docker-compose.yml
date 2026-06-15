@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  zfsdash:
+    image: ghcr.io/jkalbfeld/zfsdash:latest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/etc/zfsdash/config.yaml:ro
+      # If using SSH key auth, mount your key:
+      # - /etc/zfsdash/id_ed25519:/etc/zfsdash/id_ed25519:ro
