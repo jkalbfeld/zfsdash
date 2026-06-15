@@ -7,48 +7,51 @@ import (
 	"github.com/jkalbfeld/zfsdash/internal/zfs"
 )
 
-// Snapshot holds a single poll result with its timestamp.
-type Snapshot struct {
+// HistoryEntry stores a snapshot of pool data at a point in time.
+type HistoryEntry struct {
 	CollectedAt time.Time
-	Data        *zfs.Data
+	Pools       []zfs.Pool
 }
 
-// Store is a thread-safe in-memory ring buffer of recent snapshots.
+// Store holds the latest ZFS data and a rolling history window.
 type Store struct {
-	mu       sync.RWMutex
-	current  *Snapshot
-	history  []*Snapshot // last 1440 samples (~24h at 60s interval)
-	maxItems int
+	mu      sync.RWMutex
+	latest  *zfs.CollectedData
+	history []HistoryEntry // newest last, capped at maxHistory
 }
+
+const maxHistory = 1440 // 24h at 1-min intervals
 
 func New() *Store {
-	return &Store{maxItems: 1440}
+	return &Store{}
 }
 
-func (s *Store) Set(data *zfs.Data) {
-	snap := &Snapshot{
-		CollectedAt: time.Now(),
-		Data:        data,
-	}
+// Set replaces the latest collected data and appends to history.
+func (s *Store) Set(d *zfs.CollectedData) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.current = snap
-	s.history = append(s.history, snap)
-	if len(s.history) > s.maxItems {
-		s.history = s.history[len(s.history)-s.maxItems:]
+	s.latest = d
+	s.history = append(s.history, HistoryEntry{
+		CollectedAt: d.CollectedAt,
+		Pools:       d.Pools,
+	})
+	if len(s.history) > maxHistory {
+		s.history = s.history[len(s.history)-maxHistory:]
 	}
 }
 
-func (s *Store) Get() *Snapshot {
+// Get returns the latest collected data (nil if not yet collected).
+func (s *Store) Get() *zfs.CollectedData {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.current
+	return s.latest
 }
 
-func (s *Store) History() []*Snapshot {
+// History returns a copy of the history slice.
+func (s *Store) History() []HistoryEntry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	out := make([]*Snapshot, len(s.history))
+	out := make([]HistoryEntry, len(s.history))
 	copy(out, s.history)
 	return out
 }
