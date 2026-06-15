@@ -2,136 +2,74 @@ package zfs
 
 import "time"
 
-// PoolHealth represents the health state of a ZFS pool
-type PoolHealth string
-
-const (
-	HealthOnline   PoolHealth = "ONLINE"
-	HealthDegraded PoolHealth = "DEGRADED"
-	HealthFaulted  PoolHealth = "FAULTED"
-	HealthOffline  PoolHealth = "OFFLINE"
-	HealthUnavail  PoolHealth = "UNAVAIL"
-	HealthRemoved  PoolHealth = "REMOVED"
-)
-
-func (h PoolHealth) IsHealthy() bool {
-	return h == HealthOnline
+// Data is the full snapshot of ZFS state collected from the host.
+type Data struct {
+	Pools     []Pool
+	Datasets  []Dataset
+	Snapshots []Snapshot
+	Errors    []string
 }
 
-func (h PoolHealth) CSSClass() string {
-	switch h {
-	case HealthOnline:
-		return "status-ok"
-	case HealthDegraded:
-		return "status-warn"
-	case HealthFaulted, HealthUnavail:
-		return "status-err"
-	default:
-		return "status-unknown"
-	}
-}
-
+// Pool represents a zpool.
 type Pool struct {
-	Name        string     `json:"name"`
-	Health      PoolHealth `json:"health"`
-	SizeBytes   uint64     `json:"size_bytes"`
-	UsedBytes   uint64     `json:"used_bytes"`
-	FreeBytes   uint64     `json:"free_bytes"`
-	UsedPercent float64    `json:"used_percent"`
-	Dedup       float64    `json:"dedup"`
-	FragPercent float64    `json:"frag_percent"`
-	Scrub       ScrubInfo  `json:"scrub"`
-	VDevs       []VDev     `json:"vdevs"`
-	Errors      string     `json:"errors"`
+	Name        string
+	Health      string  // ONLINE, DEGRADED, FAULTED, OFFLINE, UNAVAIL, REMOVED
+	SizeBytes   uint64
+	UsedBytes   uint64
+	FreeBytes   uint64
+	UsedPct     float64
+	Dedup       float64 // dedup ratio, e.g. 1.00
+	FragPct     float64
+	Scrub       ScrubStatus
+	Vdevs       []Vdev
 }
 
-type ScrubStatus string
-
-const (
-	ScrubNone    ScrubStatus = "none"
-	ScrubRunning ScrubStatus = "scrub in progress"
-	ScrubDone    ScrubStatus = "scrub repaired"
-	ScrubCanceled ScrubStatus = "scrub canceled"
-)
-
-type ScrubInfo struct {
-	Status     ScrubStatus `json:"status"`
-	LastRun    time.Time   `json:"last_run"`
-	Duration   string      `json:"duration"`
-	Repaired   string      `json:"repaired"`
-	Errors     uint64      `json:"errors"`
-	InProgress bool        `json:"in_progress"`
-	Percent    float64     `json:"percent"`
+// ScrubStatus holds the latest scrub info for a pool.
+type ScrubStatus struct {
+	State      string // scrub in progress / scrub repaired / none requested
+	EndTime    time.Time
+	Duration   string
+	Repaired   uint64
+	Errors     uint64
+	InProgress bool
+	PctDone    float64
 }
 
-type VDevType string
-
-const (
-	VDevDisk   VDevType = "disk"
-	VDevMirror VDevType = "mirror"
-	VDevRaidz1 VDevType = "raidz1"
-	VDevRaidz2 VDevType = "raidz2"
-	VDevRaidz3 VDevType = "raidz3"
-	VDevSpare  VDevType = "spare"
-	VDevLog    VDevType = "log"
-	VDevCache  VDevType = "cache"
-)
-
-type VDev struct {
-	Name     string     `json:"name"`
-	Type     VDevType   `json:"type"`
-	Health   PoolHealth `json:"health"`
-	Children []VDev     `json:"children,omitempty"`
-	ReadErr  uint64     `json:"read_err"`
-	WriteErr uint64     `json:"write_err"`
-	CkSumErr uint64     `json:"cksum_err"`
+// Vdev is a single device or mirror/raidz group inside a pool.
+type Vdev struct {
+	Name   string
+	Type   string // disk, mirror, raidz, spare, cache, log
+	Health string
+	Read   uint64
+	Write  uint64
+	Cksum  uint64
 }
 
+// Dataset represents a ZFS filesystem or volume.
 type Dataset struct {
-	Name        string  `json:"name"`
-	Type        string  `json:"type"` // filesystem, volume, snapshot
-	UsedBytes   uint64  `json:"used_bytes"`
-	AvailBytes  uint64  `json:"avail_bytes"`
-	ReferBytes  uint64  `json:"refer_bytes"`
-	UsedBySnaps uint64  `json:"used_by_snaps"`
-	Mountpoint  string  `json:"mountpoint"`
-	CompressRatio float64 `json:"compress_ratio"`
-	Pool        string  `json:"pool"`
+	Name        string
+	Kind        string // filesystem, volume, snapshot
+	UsedBytes   uint64
+	AvailBytes  uint64
+	ReferBytes  uint64
+	CompRatio   float64
+	Mountpoint  string
+	Origin      string // for clones
+	Pool        string
 }
 
+// Snapshot represents a ZFS snapshot.
 type Snapshot struct {
-	Name      string    `json:"name"`
-	Dataset   string    `json:"dataset"`
-	Created   time.Time `json:"created"`
-	UsedBytes uint64    `json:"used_bytes"`
-	ReferBytes uint64   `json:"refer_bytes"`
-	Pool      string    `json:"pool"`
+	Name       string
+	Dataset    string
+	Created    time.Time
+	UsedBytes  uint64
+	ReferBytes uint64
+	Pool       string
 }
 
-type CollectedData struct {
-	CollectedAt time.Time  `json:"collected_at"`
-	Pools       []Pool     `json:"pools"`
-	Datasets    []Dataset  `json:"datasets"`
-	Snapshots   []Snapshot `json:"snapshots"`
-	Error       string     `json:"error,omitempty"`
-}
-
-// Collector is the interface both SSH and TrueNAS backends implement
+// Collector is the interface both SSH and TrueNAS collectors satisfy.
 type Collector interface {
-	Collect() (*CollectedData, error)
+	Collect() (*Data, error)
 	Name() string
-}
-
-// BytesToHuman converts bytes to a human-readable string
-func BytesToHuman(b uint64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := uint64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
