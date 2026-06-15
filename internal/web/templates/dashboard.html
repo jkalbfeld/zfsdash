@@ -1,0 +1,80 @@
+{{template "base.html" .}}
+{{define "title"}} — Dashboard{{end}}
+{{define "content"}}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <span class="updated">
+    {{if not .CollectedAt.IsZero}}Last updated {{timeAgo .CollectedAt}}{{else}}Waiting for first collection…{{end}}
+    <button class="refresh-btn" hx-get="/htmx/header" hx-target="this" hx-swap="outerHTML" style="margin-left:12px">↺ Refresh</button>
+  </span>
+</div>
+
+{{if eq .PoolCount 0}}
+<div class="empty-state">
+  <p>No ZFS data yet. Check your config and collector connection.</p>
+</div>
+{{else}}
+
+<!-- Summary cards -->
+<div class="grid-4">
+  <div class="card">
+    <div class="card-title">Total Pools</div>
+    <div class="card-value">{{.PoolCount}}</div>
+    <div class="card-sub">{{.Healthy}} healthy{{if gt .Degraded 0}}, <span style="color:var(--red)">{{.Degraded}} degraded</span>{{end}}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Total Capacity</div>
+    <div class="card-value">{{formatBytes .TotalSize}}</div>
+    <div class="card-sub">{{formatBytes .TotalUsed}} used</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Snapshots</div>
+    <div class="card-value">{{.SnapshotCount}}</div>
+    <div class="card-sub">across all pools</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Datasets</div>
+    <div class="card-value">{{len .Datasets}}</div>
+    <div class="card-sub">filesystems + volumes</div>
+  </div>
+</div>
+
+<!-- Pool cards -->
+<div class="section-title">Pool Overview</div>
+<div id="pool-cards" hx-get="/htmx/pools" hx-trigger="every 60s" hx-swap="innerHTML">
+  {{template "partial_pools.html" .}}
+</div>
+
+<!-- Top datasets -->
+<div style="margin-top:28px">
+  <div class="section-title">Top Datasets by Usage</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Dataset</th>
+          <th>Pool</th>
+          <th>Type</th>
+          <th>Used</th>
+          <th>Available</th>
+          <th>Mountpoint</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .TopDatasets}}
+        <tr>
+          <td style="font-family:monospace">{{.Name}}</td>
+          <td>{{.Pool}}</td>
+          <td><span class="badge badge-offline">{{.Type}}</span></td>
+          <td>{{formatBytes .Used}}</td>
+          <td>{{formatBytes .Avail}}</td>
+          <td style="color:var(--muted)">{{.Mountpoint}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{{end}}
+{{end}}

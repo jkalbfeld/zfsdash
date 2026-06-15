@@ -1,0 +1,121 @@
+{{define "base.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>zfsdash{{block "title" .}} — ZFS Health Dashboard{{end}}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12" crossorigin="anonymous"></script>
+  <style>
+    /* ---- Reset & Base ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d27;
+      --border:  #2a2d3a;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --accent:  #38bdf8;
+      --green:   #22c55e;
+      --yellow:  #eab308;
+      --red:     #ef4444;
+      --orange:  #f97316;
+      --radius:  8px;
+      --font:    'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---- Layout ---- */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--surface); border-right: 1px solid var(--border);
+      padding: 24px 16px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .sidebar .logo { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 20px; }
+    .sidebar .logo span { color: var(--text); }
+    .sidebar a {
+      display: block; padding: 8px 12px; border-radius: var(--radius);
+      color: var(--muted); font-size: 13px; transition: all .15s;
+    }
+    .sidebar a:hover, .sidebar a.active { background: var(--border); color: var(--text); text-decoration: none; }
+    .main { flex: 1; padding: 32px; overflow-x: auto; }
+
+    /* ---- Cards ---- */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .card-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+    .card-value { font-size: 28px; font-weight: 700; color: var(--text); }
+    .card-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ---- Grid ---- */
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .grid-4 { grid-template-columns: 1fr 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+
+    /* ---- Page header ---- */
+    .page-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header .updated { font-size: 12px; color: var(--muted); }
+
+    /* ---- Tables ---- */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    /* ---- Badges ---- */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .badge-online  { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+    .badge-degraded{ background: rgba(234,179,8,.15);  color: var(--yellow); border: 1px solid rgba(234,179,8,.3); }
+    .badge-faulted { background: rgba(239,68,68,.15); color: var(--red);    border: 1px solid rgba(239,68,68,.3); }
+    .badge-offline { background: rgba(100,116,139,.15); color: var(--muted); border: 1px solid rgba(100,116,139,.3); }
+
+    /* ---- Progress bar ---- */
+    .progress-wrap { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 6px; }
+    .progress-bar  { height: 6px; border-radius: 4px; transition: width .3s; }
+    .progress-bar.ok     { background: var(--green); }
+    .progress-bar.warn   { background: var(--yellow); }
+    .progress-bar.danger { background: var(--red); }
+
+    /* ---- Pool card ---- */
+    .pool-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .pool-card .pool-name { font-size: 18px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .pool-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .pool-meta-item label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .pool-meta-item span  { display: block; font-size: 15px; font-weight: 600; margin-top: 2px; }
+
+    /* ---- Scrub indicator ---- */
+    .scrub-status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .scrub-status.scrub-ok     { color: var(--green); }
+    .scrub-status.scrub-active { color: var(--accent); }
+    .scrub-status.scrub-error  { color: var(--red); }
+
+    /* ---- Misc ---- */
+    .section-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .empty-state { text-align: center; color: var(--muted); padding: 48px; }
+    .htmx-indicator { opacity: 0; transition: opacity 0.2s; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+    .refresh-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 12px; border-radius: var(--radius); cursor: pointer; font-size: 12px; font-family: inherit; }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="logo">zfs<span>dash</span></div>
+      <a href="/" {{if eq .ActivePage "dashboard"}}class="active"{{end}}>Dashboard</a>
+      <a href="/pools" {{if eq .ActivePage "pools"}}class="active"{{end}}>Pools</a>
+      <a href="/datasets" {{if eq .ActivePage "datasets"}}class="active"{{end}}>Datasets</a>
+      <a href="/snapshots" {{if eq .ActivePage "snapshots"}}class="active"{{end}}>Snapshots</a>
+      <a href="/alerts" {{if eq .ActivePage "alerts"}}class="active"{{end}}>Alerts</a>
+    </nav>
+    <main class="main">
+      {{block "content" .}}{{end}}
+    </main>
+  </div>
+</body>
+</html>
+{{end}}
