@@ -7,8 +7,15 @@
   <table>
     <tr><td style="color:var(--muted);width:220px">Capacity threshold</td><td>{{formatPercent .Config.CapacityAlertThreshold}}</td></tr>
     <tr><td style="color:var(--muted)">Cooldown</td><td>{{.Config.AlertCooldownMinutes}} minutes</td></tr>
-    <tr><td style="color:var(--muted)">Email alerts</td><td>{{if .Config.Email.Enabled}}<span class="badge badge-online">enabled</span> → {{range .Config.Email.To}}{{.}} {{end}}{{else}}<span class="badge badge-offline">disabled</span>{{end}}</td></tr>
-    <tr><td style="color:var(--muted)">Webhooks</td><td>{{if .Config.Webhooks}}{{len .Config.Webhooks}} configured{{else}}<span class="badge badge-offline">none</span>{{end}}</td></tr>
+    <tr><td style="color:var(--muted)">Email alerts</td>
+      <td>{{if .Config.Email.Enabled}}
+        <span class="badge badge-online">enabled</span>
+        {{range .Config.Email.To}}&nbsp;{{.}}{{end}}
+      {{else}}
+        <span class="badge badge-offline">disabled</span>
+      {{end}}</td></tr>
+    <tr><td style="color:var(--muted)">Webhooks</td>
+      <td>{{if .Config.Webhooks}}{{len .Config.Webhooks}} configured{{else}}<span class="badge badge-offline">none</span>{{end}}</td></tr>
   </table>
   <p style="margin-top:20px;color:var(--muted);font-size:12px">
     Edit <code>config.yaml</code> to change alert settings. Changes take effect on restart.
@@ -22,13 +29,11 @@
   <p style="color:var(--muted);font-size:13px">This pool is not ONLINE. Check vdev status on the Pools page.</p>
 </div>
 {{end}}
-{{range $p := $.Pools}}
-{{if gt $p.UsedPercent $.Config.CapacityAlertThreshold}}
+{{if gt .UsedPercent $.Config.CapacityAlertThreshold}}
 <div class="card" style="border-color:var(--orange);margin-top:16px">
-  <div style="color:var(--orange);font-weight:700;margin-bottom:8px">⚠️ Active Alert: Pool {{$p.Name}} at {{formatPercent $p.UsedPercent}} capacity</div>
+  <div style="color:var(--orange);font-weight:700;margin-bottom:8px">⚠️ Active Alert: Pool {{.Name}} at {{formatPercent .UsedPercent}} capacity</div>
   <p style="color:var(--muted);font-size:13px">Threshold is {{formatPercent $.Config.CapacityAlertThreshold}}.</p>
 </div>
-{{end}}
 {{end}}
 {{end}}
 {{end}}

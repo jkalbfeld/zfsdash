@@ -24,23 +24,21 @@ type Handler struct {
 
 func NewHandler(st *store.Store, cfg *config.Config) *Handler {
 	funcMap := template.FuncMap{
-		"formatBytes": formatBytes,
+		"formatBytes":   formatBytes,
 		"formatPercent": func(f float64) string { return fmt.Sprintf("%.1f%%", f) },
-		"healthClass": healthClass,
-		"now": func() string { return time.Now().Format("2006-01-02 15:04:05") },
-		"timeAgo": timeAgo,
-		"sub": func(a, b int) int { return a - b },
-		"add": func(a, b int) int { return a + b },
-		"mul": func(a, b float64) float64 { return a * b },
+		"healthClass":   healthClass,
+		"now":           func() string { return time.Now().Format("2006-01-02 15:04:05") },
+		"timeAgo":       timeAgo,
+		"sub":           func(a, b int) int { return a - b },
+		"add":           func(a, b int) int { return a + b },
+		"mul":           func(a, b float64) float64 { return a * b },
 		"div": func(a, b float64) float64 {
-			if b == 0 { return 0 }
+			if b == 0 {
+				return 0
+			}
 			return a / b
 		},
 		"gt": func(a, b float64) bool { return a > b },
-		"deref": func(d *zfs.CollectedData) zfs.CollectedData {
-			if d == nil { return zfs.CollectedData{} }
-			return *d
-		},
 	}
 	tmpl := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
 	return &Handler{st: st, cfg: cfg, tmpl: tmpl}
@@ -70,23 +68,33 @@ func (h *Handler) Register(r chi.Router) {
 // --- page handlers ---
 
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "dashboard.html", h.buildViewData())
+	vd := h.buildViewData()
+	vd.ActivePage = "dashboard"
+	h.render(w, "dashboard.html", vd)
 }
 
 func (h *Handler) pools(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "pools.html", h.buildViewData())
+	vd := h.buildViewData()
+	vd.ActivePage = "pools"
+	h.render(w, "pools.html", vd)
 }
 
 func (h *Handler) datasets(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "datasets.html", h.buildViewData())
+	vd := h.buildViewData()
+	vd.ActivePage = "datasets"
+	h.render(w, "datasets.html", vd)
 }
 
 func (h *Handler) snapshots(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "snapshots.html", h.buildViewData())
+	vd := h.buildViewData()
+	vd.ActivePage = "snapshots"
+	h.render(w, "snapshots.html", vd)
 }
 
 func (h *Handler) alertsPage(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "alertspage.html", h.buildViewData())
+	vd := h.buildViewData()
+	vd.ActivePage = "alerts"
+	h.render(w, "alertspage.html", vd)
 }
 
 // --- HTMX partial handlers ---
@@ -159,18 +167,19 @@ func (h *Handler) apiHealth(w http.ResponseWriter, r *http.Request) {
 // --- view data ---
 
 type ViewData struct {
-	CollectedAt  time.Time
-	Pools        []zfs.Pool
-	Datasets     []zfs.Dataset
-	Snapshots    []zfs.Snapshot
-	TopDatasets  []zfs.Dataset // top 10 by used bytes
-	PoolCount    int
-	Healthy      int
-	Degraded     int
+	ActivePage    string
+	CollectedAt   time.Time
+	Pools         []zfs.Pool
+	Datasets      []zfs.Dataset
+	Snapshots     []zfs.Snapshot
+	TopDatasets   []zfs.Dataset
+	PoolCount     int
+	Healthy       int
+	Degraded      int
 	SnapshotCount int
-	TotalUsed    uint64
-	TotalSize    uint64
-	Config       *config.Config
+	TotalUsed     uint64
+	TotalSize     uint64
+	Config        *config.Config
 }
 
 func (h *Handler) buildViewData() ViewData {
