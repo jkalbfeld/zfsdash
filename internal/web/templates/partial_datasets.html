@@ -1,0 +1,34 @@
+{{define "partial_datasets.html"}}
+<div class="card">
+{{if .Datasets}}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Pool</th>
+      <th>Type</th>
+      <th>Used</th>
+      <th>Available</th>
+      <th>Referenced</th>
+      <th>Mountpoint</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Datasets}}
+    <tr>
+      <td style="font-family:monospace;max-width:300px;overflow:hidden;text-overflow:ellipsis">{{.Name}}</td>
+      <td>{{.Pool}}</td>
+      <td><span class="badge badge-offline" style="font-size:10px">{{.Type}}</span></td>
+      <td>{{formatBytes .Used}}</td>
+      <td>{{formatBytes .Avail}}</td>
+      <td>{{formatBytes .Refer}}</td>
+      <td style="color:var(--muted);font-size:12px">{{.Mountpoint}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="empty-state"><p>No datasets found.</p></div>
+{{end}}
+</div>
+{{end}}

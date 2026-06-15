@@ -1,0 +1,32 @@
+{{define "partial_snapshots.html"}}
+<div class="card">
+{{if .Snapshots}}
+<table>
+  <thead>
+    <tr>
+      <th>Snapshot</th>
+      <th>Pool</th>
+      <th>Dataset</th>
+      <th>Created</th>
+      <th>Used</th>
+      <th>Referenced</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Snapshots}}
+    <tr>
+      <td style="font-family:monospace;font-size:12px">{{.Name}}</td>
+      <td>{{.Pool}}</td>
+      <td style="font-size:12px;color:var(--muted)">{{.Dataset}}</td>
+      <td>{{if not .Created.IsZero}}{{timeAgo .Created}}{{else}}—{{end}}</td>
+      <td>{{formatBytes .Used}}</td>
+      <td>{{formatBytes .Refer}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="empty-state"><p>No snapshots found.</p></div>
+{{end}}
+</div>
+{{end}}

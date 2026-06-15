@@ -1,0 +1,6 @@
+{{define "partial_header.html"}}
+<span class="updated">
+  {{if not .CollectedAt.IsZero}}Last updated {{timeAgo .CollectedAt}}{{else}}Waiting…{{end}}
+  <button class="refresh-btn" hx-get="/htmx/header" hx-target="this" hx-swap="outerHTML" style="margin-left:12px">↺ Refresh</button>
+</span>
+{{end}}

@@ -1,0 +1,67 @@
+{{define "partial_pools.html"}}
+{{range .Pools}}
+<div class="pool-card" style="margin-bottom:16px">
+  <div class="pool-name">
+    {{.Name}}
+    <span class="badge {{healthClass .Health}}">{{.Health}}</span>
+    {{if .Scrub.InProgress}}<span class="badge" style="background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.3)">scrubbing {{printf "%.0f" .Scrub.PercentDone}}%</span>{{end}}
+  </div>
+
+  {{$pct := .UsedPercent}}
+  {{$cls := "ok"}}
+  {{if gt $pct 85.0}}{{$cls = "danger"}}{{else if gt $pct 70.0}}{{$cls = "warn"}}{{end}}
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
+        <span>{{formatBytes .Alloc}} used</span>
+        <span>{{formatBytes .Free}} free / {{formatBytes .Size}}</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar {{$cls}}" style="width:{{printf "%.1f" .UsedPercent}}%"></div>
+      </div>
+    </div>
+    <span style="font-size:18px;font-weight:700">{{printf "%.1f" .UsedPercent}}%</span>
+  </div>
+
+  <div class="pool-meta">
+    <div class="pool-meta-item">
+      <label>Dedup Ratio</label>
+      <span>{{printf "%.2fx" .Dedup}}</span>
+    </div>
+    <div class="pool-meta-item">
+      <label>Fragmentation</label>
+      <span>{{printf "%.1f%%" .FragPercent}}</span>
+    </div>
+    <div class="pool-meta-item">
+      <label>Last Scrub</label>
+      <span class="scrub-status {{if eq .Scrub.State "clean"}}scrub-ok{{else if eq .Scrub.State "in progress"}}scrub-active{{else if .Scrub.Errors}}scrub-error{{end}}">
+        {{if .Scrub.State}}{{.Scrub.State}}{{if .Scrub.Duration}} ({{.Scrub.Duration}}){{end}}{{else}}unknown{{end}}
+      </span>
+    </div>
+  </div>
+
+  {{if .Vdevs}}
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;color:var(--muted);font-size:12px">Vdev tree ({{len .Vdevs}} top-level)</summary>
+    <table style="margin-top:8px">
+      <thead><tr><th>Name</th><th>Type</th><th>Health</th><th>Read Err</th><th>Write Err</th><th>Cksum Err</th></tr></thead>
+      <tbody>
+      {{range .Vdevs}}
+      <tr>
+        <td style="font-family:monospace">{{.Name}}</td>
+        <td>{{.Type}}</td>
+        <td><span class="badge {{healthClass .Health}}">{{.Health}}</span></td>
+        <td>{{.Read}}</td>
+        <td>{{.Write}}</td>
+        <td>{{.Cksum}}</td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </details>
+  {{end}}
+</div>
+{{else}}
+<div class="empty-state"><p>No pools found.</p></div>
+{{end}}
+{{end}}
