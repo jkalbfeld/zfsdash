@@ -8,15 +8,15 @@ import (
 )
 
 type Config struct {
-	Mode                   string       `yaml:"mode"`
-	SSH                    SSHConfig    `yaml:"ssh"`
+	Mode                   string      `yaml:"mode"`
+	SSH                    SSHConfig   `yaml:"ssh"`
 	TrueNAS                TrueNASConfig `yaml:"truenas"`
-	PollInterval           int          `yaml:"poll_interval"`
-	CapacityAlertThreshold float64      `yaml:"capacity_alert_threshold"`
-	AlertCooldownMinutes   int          `yaml:"alert_cooldown_minutes"`
-	Email                  EmailConfig  `yaml:"email"`
-	Webhooks               []Webhook    `yaml:"webhooks"`
-	Listen                 string       `yaml:"listen"`
+	PollInterval           int         `yaml:"poll_interval"`
+	CapacityAlertThreshold float64     `yaml:"capacity_alert_threshold"`
+	AlertCooldownMinutes   int         `yaml:"alert_cooldown_minutes"`
+	Email                  EmailConfig `yaml:"email"`
+	Webhooks               []WebhookConfig `yaml:"webhooks"`
+	Listen                 string      `yaml:"listen"`
 }
 
 type SSHConfig struct {
@@ -43,37 +43,37 @@ type EmailConfig struct {
 	To           []string `yaml:"to"`
 }
 
-type Webhook struct {
+type WebhookConfig struct {
 	URL string `yaml:"url"`
 }
 
 func Load(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("read config: %w", err)
+		return nil, fmt.Errorf("open config %q: %w", path, err)
 	}
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+	defer f.Close()
+
+	cfg := defaults()
+	if err := yaml.NewDecoder(f).Decode(cfg); err != nil {
+		return nil, fmt.Errorf("decode config: %w", err)
 	}
-	// Defaults
-	if cfg.PollInterval == 0 {
-		cfg.PollInterval = 60
+	return cfg, nil
+}
+
+func defaults() *Config {
+	return &Config{
+		Mode:                   "ssh",
+		PollInterval:           60,
+		CapacityAlertThreshold: 85,
+		AlertCooldownMinutes:   60,
+		Listen:                 ":8080",
+		SSH: SSHConfig{
+			Port: 22,
+			User: "root",
+		},
+		TrueNAS: TrueNASConfig{
+			TLSVerify: true,
+		},
 	}
-	if cfg.CapacityAlertThreshold == 0 {
-		cfg.CapacityAlertThreshold = 85
-	}
-	if cfg.AlertCooldownMinutes == 0 {
-		cfg.AlertCooldownMinutes = 60
-	}
-	if cfg.Listen == "" {
-		cfg.Listen = ":8080"
-	}
-	if cfg.SSH.Port == 0 {
-		cfg.SSH.Port = 22
-	}
-	if cfg.Email.SMTPPort == 0 {
-		cfg.Email.SMTPPort = 587
-	}
-	return &cfg, nil
 }
